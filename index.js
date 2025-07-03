@@ -3,6 +3,15 @@ const { Boom } = require('@hapi/boom');
 const cfonts = require('cfonts');
 
 const startBot = async () => {
+  const fs = require('fs');
+const path = require('path');
+
+// Clear existing session if present
+const authPath = path.join(__dirname, 'sessions');
+if (fs.existsSync(authPath)) {
+  fs.rmSync(authPath, { recursive: true, force: true });
+  console.log('🧹 Cleared old session files.');
+}
   const { state, saveCreds } = await useMultiFileAuthState('sessions');
 
   const sock = makeWASocket({
