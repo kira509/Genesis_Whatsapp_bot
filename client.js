@@ -18,5 +18,24 @@ async function startGenesisBot () {
       const { connection, lastDisconnect } = update
       if (connection === 'close') {
          const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut
-         console.log('Connection closed due to', lastDisconnect.error, '| Re
+         console.log('Connection closed due to', lastDisconnect.error, '| Reconnecting:', shouldReconnect)
+         if (shouldReconnect) startGenesisBot()
+      } else if (connection === 'open') {
+         console.log('✅ GenesisBot connected successfully!')
+      }
+   })
 
+   sock.ev.on('messages.upsert', async ({ messages }) => {
+      const msg = messages[0]
+      if (!msg.message || msg.key.fromMe) return
+
+      const from = msg.key.remoteJid
+      const text = msg.message.conversation || msg.message.extendedTextMessage?.text
+
+      if (text === '.ping') {
+         await sock.sendMessage(from, { text: '*Pong!!* GenesisBot is alive 💡' }, { quoted: msg })
+      }
+   })
+}
+
+startGenesisBot()
