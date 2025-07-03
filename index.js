@@ -1,24 +1,36 @@
-// index.js
-import { default as makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } from '@whiskeysockets/baileys'
+/// index.js
+import makeWASocket, {
+  useMultiFileAuthState,
+  fetchLatestBaileysVersion,
+  DisconnectReason
+} from '@whiskeysockets/baileys'
+
 import { Boom } from '@hapi/boom'
 import P from 'pino'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import fs from 'fs'
 
-const SESSION_DIR = './auth_info_baileys'
+// __dirname fix for ES modules
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const SESSION_DIR = path.join(__dirname, 'auth_info_baileys')
 
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR)
-  const { version, isLatest } = await fetchLatestBaileysVersion()
+  const { version } = await fetchLatestBaileysVersion()
 
   const sock = makeWASocket({
     version,
     auth: state,
-    printQRInTerminal: false,
     logger: P({ level: 'silent' }),
-    browser: ['GenesisBot', 'Chrome', '1.0.0']
+    browser: ['GenesisBot', 'Chrome', '1.0.0'],
+    printQRInTerminal: false
   })
 
-  // 🔐 Generate and show pair code
-  sock.ev.on('connection.update', async (update) => {
+  // ✅ Show pair code
+  sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, pairingCode } = update
 
     if (pairingCode) {
@@ -27,8 +39,8 @@ async function startBot() {
 
     if (connection === 'close') {
       const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
-      console.log(`Connection closed. Reason: ${reason}`)
-      if (reason !== 401) startBot()
+      console.log(`❌ Disconnected: ${reason}`)
+      if (reason !== DisconnectReason.loggedOut) startBot()
     } else if (connection === 'open') {
       console.log('✅ Connected to WhatsApp!')
     }
