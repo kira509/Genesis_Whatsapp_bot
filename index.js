@@ -11,9 +11,8 @@ const startBot = async () => {
     browser: ['GenesisBot', 'Chrome', '1.0.0'],
   });
 
-  // 🔄 Pair code generation
   if (!sock.authState.creds.registered) {
-    const { code } = await sock.requestPairingCode('<25438701209>');
+    const { code } = await sock.requestPairingCode('254738701209'); // << Replace with your real number
     console.log(`\n🔗 Your GenesisBot Pair Code: ${code}\n`);
   }
 
@@ -29,7 +28,6 @@ const startBot = async () => {
     }
   });
 
-  // Optional: fancy text on startup
   cfonts.say('Genesis Bot', {
     font: 'block',
     align: 'center',
