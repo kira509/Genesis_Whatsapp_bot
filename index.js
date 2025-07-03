@@ -1,47 +1,50 @@
-const { makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
-const { Boom } = require('@hapi/boom');
-const cfonts = require('cfonts');
+/**
+ * Genesis-Bot – Pair-code bootstrap
+ * 1) Removes any previous creds
+ * 2) Connects to WA
+ * 3) Prints 8-digit pair-code
+ * 4) Exits (so Render restarts only after you commit the normal bot again)
+ */
 
-const startBot = async () => {
-  const fs = require('fs');
-const path = require('path');
+import fs from 'fs'
+import path from 'path'
+import { Boom } from '@hapi/boom'
+import {
+  makeWASocket,
+  DisconnectReason,
+  useMultiFileAuthState
+} from '@whiskeysockets/baileys'
 
-// Clear existing session if present
-const authPath = path.join(__dirname, 'sessions');
-if (fs.existsSync(authPath)) {
-  fs.rmSync(authPath, { recursive: true, force: true });
-  console.log('🧹 Cleared old session files.');
-}
-  const { state, saveCreds } = await useMultiFileAuthState('sessions');
+// ─── 0. CONFIG ────────────────────────────────────────────────────────────────
+const SESSION_DIR   = './session'                 // where creds are stored
+const PHONE_NUMBER  = '254738701209'              // without “+”
+// ──────────────────────────────────────────────────────────────────────────────
 
-  const sock = makeWASocket({
-    auth: state,
-    printQRInTerminal: false,
-    browser: ['GenesisBot', 'Chrome', '1.0.0'],
-  });
+// 1) wipe any previous auth (only for this bootstrap!)
+fs.rmSync(path.join(__dirname, SESSION_DIR), { recursive: true, force: true })
+console.log('🧹  Old session deleted. Requesting fresh pair-code…')
 
-  if (!sock.authState.creds.registered) {
-    const { code } = await sock.requestPairingCode('254738701209'); // << Replace with your real number
-    console.log(`\n🔗 Your GenesisBot Pair Code: ${code}\n`);
+// 2) create socket (no creds yet)
+const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR)
+const sock = makeWASocket({ auth: state, browser: ['GenesisBot','Chrome','1.0.0'] })
+sock.ev.on('creds.update', saveCreds)
+
+// 3) once the low-level connection is up, ask for the code
+sock.ev.once('connection.update', async ({ connection, lastDisconnect }) => {
+  if (connection === 'close') {
+    const reason = new Boom(lastDisconnect?.error)?.output?.statusCode
+    if (reason !== DisconnectReason.loggedOut) return console.error('❌  Connection closed, try again')
   }
 
-  sock.ev.on('creds.update', saveCreds);
-
-  sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
-    if (connection === 'close') {
-      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-      console.log('Connection closed. Reconnecting...', shouldReconnect);
-      if (shouldReconnect) startBot();
-    } else if (connection === 'open') {
-      console.log('✅ Bot connected successfully!');
+  if (connection === 'open') {
+    try {
+      const code = await sock.requestPairingCode(PHONE_NUMBER)
+      console.log('\n🔗  YOUR 8-DIGIT PAIR-CODE:\n\n   ', code, '\n')
+      console.log('👉  WhatsApp » Linked devices » Link with phone number\n')
+      process.exit(0)        // quit so the container doesn’t loop
+    } catch (err) {
+      console.error('❌  Could not get pair-code:', err?.message || err)
+      process.exit(1)
     }
-  });
-
-  cfonts.say('Genesis Bot', {
-    font: 'block',
-    align: 'center',
-    colors: ['blueBright'],
-  });
-};
-
-startBot();
+  }
+})
