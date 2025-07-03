@@ -6,6 +6,8 @@ const {
 const { Boom } = require('@hapi/boom')
 const fs = require('fs')
 const path = require('path')
+const qrcode = require('qrcode-terminal')
+
 
 async function startGenesisBot() {
   // Create session folder if missing
@@ -25,7 +27,10 @@ async function startGenesisBot() {
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update
 
-    if (qr) console.log(`\n📲  Scan this QR:\n${qr}\n`)
+   if (qr) {
+  console.log('\n📲  Scan the QR below to pair:\n')
+  qrcode.generate(qr, { small: true })
+}
 
     if (connection === 'close') {
       const shouldReconnect =
