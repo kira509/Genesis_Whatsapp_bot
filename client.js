@@ -7,7 +7,7 @@ const fs = require('fs')
 const path = require('path')
 
 // 👇 Put your WhatsApp number here (no + sign)
-const YOUR_NUMBER = '2547XXXXXXXX'
+const YOUR_NUMBER = '254738701209'
 
 async function startGenesisBot () {
   // 1. Ensure session folder exists
