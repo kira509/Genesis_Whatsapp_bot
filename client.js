@@ -41,7 +41,7 @@ async function startGenesisBot () {
 
     // 🟡 Generate pairing code
     if (isNewLogin) {
-      const code = await sock.requestPairingCode(`${YOUR_NUMBER}@s.whatsapp.net`)
+      const code = await sock.requestPairingCode(`${254738701209}@s.whatsapp.net`)
       console.log(`🔗 Your GenesisBot Pair Code:\n\n  ${code}\n`)
       console.log('📲 Open WhatsApp > Linked Devices > Link with code')
     }
