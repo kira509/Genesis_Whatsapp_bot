@@ -13,7 +13,7 @@ const startBot = async () => {
 
   // 🔄 Pair code generation
   if (!sock.authState.creds.registered) {
-    const { code } = await sock.requestPairingCode('<YOUR_PHONE_NUMBER_WITH_COUNTRY_CODE>');
+    const { code } = await sock.requestPairingCode('<25438701209>');
     console.log(`\n🔗 Your GenesisBot Pair Code: ${code}\n`);
   }
 
