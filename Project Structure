@@ -1,0 +1,13 @@
+GenesisBot/
+├── client.js
+├── index.js
+├── package.json
+├── plugins/
+│   ├── downloader/
+│   ├── ai/
+│   └── tools/
+├── lib/
+│   └── functions.js
+├── .env
+├── .gitignore
+└── README.md
