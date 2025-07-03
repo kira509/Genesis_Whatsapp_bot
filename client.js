@@ -1,8 +1,10 @@
-const { default: makeWASocket, DisconnectReason } = require('@whiskeysockets/baileys')
-const { useSingleFileAuthState } = require('@whiskeysockets/baileys/lib/store')
+const makeWASocket = require('@whiskeysockets/baileys').default
+const { useSingleFileAuthState } = require('@whiskeysockets/baileys')
+const { DisconnectReason } = require('@whiskeysockets/baileys')
 const { Boom } = require('@hapi/boom')
 const fs = require('fs')
 const path = require('path')
+
 
 const { state, saveState } = useSingleFileAuthState('./session/auth.json') // Auto saves session
 
