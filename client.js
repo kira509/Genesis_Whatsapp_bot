@@ -3,51 +3,61 @@ const {
   DisconnectReason,
   useMultiFileAuthState
 } = require('@whiskeysockets/baileys')
-const qrcode = require('qrcode-terminal')
 const fs = require('fs')
 const path = require('path')
 
+// 👇 Put your WhatsApp number here (no + sign)
+const YOUR_NUMBER = '2547XXXXXXXX'
+
 async function startGenesisBot () {
+  // 1. Ensure session folder exists
   fs.mkdirSync(path.join(__dirname, 'session'), { recursive: true })
 
+  // 2. Load multi-file auth
   const { state, saveCreds } = await useMultiFileAuthState('./session')
+
+  // 3. Start socket
   const sock = makeWASocket({
     auth: state,
-    browser: ['GenesisBot', 'Chrome', '1.0.0']
+    browser: ['GenesisBot', 'Chrome', '1.0.0'],
+    printQRInTerminal: false // disable default QR
   })
 
+  // 4. Save credentials
   sock.ev.on('creds.update', saveCreds)
 
-  sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
-    if (qr) {
-      console.log('\n📲  Scan the QR below to pair:\n')
-      qrcode.generate(qr, { small: true })
+  // 5. Handle connection update
+  sock.ev.on('connection.update', async ({ connection, lastDisconnect, isNewLogin }) => {
+    if (connection === 'close') {
+      const shouldReconnect =
+        (lastDisconnect?.error?.output?.statusCode ?? 0) !== DisconnectReason.loggedOut
+      console.log('❌ Connection closed.', shouldReconnect ? 'Reconnecting…' : 'Logged out.')
+      if (shouldReconnect) startGenesisBot()
     }
 
     if (connection === 'open') {
       console.log('✅ GenesisBot connected successfully!')
     }
 
-    if (connection === 'close') {
-      const shouldReconnect =
-        (lastDisconnect?.error?.output?.statusCode ?? 0) !== DisconnectReason.loggedOut
-      console.log('Connection closed.', shouldReconnect ? 'Reconnecting…' : 'Logged out.')
-      if (shouldReconnect) startGenesisBot()
+    // 🟡 Generate pairing code
+    if (isNewLogin) {
+      const code = await sock.requestPairingCode(`${YOUR_NUMBER}@s.whatsapp.net`)
+      console.log(`🔗 Your GenesisBot Pair Code:\n\n  ${code}\n`)
+      console.log('📲 Open WhatsApp > Linked Devices > Link with code')
     }
   })
 
+  // 6. Handle messages
   sock.ev.on('messages.upsert', async ({ messages }) => {
     const msg = messages[0]
-    if (!msg.message) return
+    if (!msg.message || msg.key.fromMe) return
 
     const from = msg.key.remoteJid
-    const text = msg.message?.conversation
-      ?? msg.message?.extendedTextMessage?.text
-      ?? ''
+    const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || ''
 
     console.log('📥', from, '→', text)
 
-    if (text.toLowerCase().startsWith('.ping')) {
+    if (text.toLowerCase() === '.ping') {
       await sock.sendMessage(from, { text: '*Pong!!* GenesisBot is alive 💡' }, { quoted: msg })
     }
   })
