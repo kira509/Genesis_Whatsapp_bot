@@ -47,7 +47,7 @@ const startBot = async () => {
 
     if (isNewLogin && !pairingCode) {
       try {
-        let code = await sock.requestPairingCode("254XXXXXXXXX") // ← put your phone number here
+        let code = await sock.requestPairingCode("254738701209") // ← put your phone number here
         console.log(`\n🔗 Your GenesisBot Pair Code: ${code}`)
       } catch (e) {
         console.error('❌ Error generating pair code:', e)
