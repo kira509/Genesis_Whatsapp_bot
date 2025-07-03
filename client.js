@@ -1,4 +1,5 @@
-const { default: makeWASocket, useSingleFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys')
+const { default: makeWASocket, DisconnectReason } = require('@whiskeysockets/baileys')
+const { useSingleFileAuthState } = require('@whiskeysockets/baileys/lib/store')
 const { Boom } = require('@hapi/boom')
 const fs = require('fs')
 const path = require('path')
