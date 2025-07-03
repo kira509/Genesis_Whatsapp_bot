@@ -1,36 +1,40 @@
-require('dotenv').config()
-console.clear()
+const { makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { Boom } = require('@hapi/boom');
+const cfonts = require('cfonts');
 
-const express = require('express')
-const app = express()
+const startBot = async () => {
+  const { state, saveCreds } = await useMultiFileAuthState('sessions');
 
-app.get('/', (_, res) => res.send('Genesis WhatsApp Bot is running!'))
+  const sock = makeWASocket({
+    auth: state,
+    printQRInTerminal: false,
+    browser: ['GenesisBot', 'Chrome', '1.0.0'],
+  });
 
-const PORT = process.env.PORT || 3000
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`))
+  // 🔄 Pair code generation
+  if (!sock.authState.creds.registered) {
+    const { code } = await sock.requestPairingCode('<YOUR_PHONE_NUMBER_WITH_COUNTRY_CODE>');
+    console.log(`\n🔗 Your GenesisBot Pair Code: ${code}\n`);
+  }
 
-// Bot starter
-const { spawn } = require('child_process')
-const path = require('path')
-const CFonts = require('cfonts')
+  sock.ev.on('creds.update', saveCreds);
 
-function startBot () {
-   const args = [path.join(__dirname, 'client.js')]
-   const bot = spawn('node', args, { stdio: ['inherit', 'inherit', 'inherit', 'ipc'] })
+  sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
+    if (connection === 'close') {
+      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+      console.log('Connection closed. Reconnecting...', shouldReconnect);
+      if (shouldReconnect) startBot();
+    } else if (connection === 'open') {
+      console.log('✅ Bot connected successfully!');
+    }
+  });
 
-   bot.on('message', (msg) => {
-      if (msg === 'reset') {
-         console.log('🔁 Restarting bot...')
-         bot.kill()
-         startBot()
-      }
-   })
+  // Optional: fancy text on startup
+  cfonts.say('Genesis Bot', {
+    font: 'block',
+    align: 'center',
+    colors: ['blueBright'],
+  });
+};
 
-   bot.on('exit', code => {
-      console.log('❌ Bot exited with code:', code)
-      startBot()
-   })
-}
-
-CFonts.say('GENESIS', { font: 'block', align: 'center', colors: ['system'] })
-startBot()
+startBot();
